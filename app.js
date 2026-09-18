@@ -38,6 +38,8 @@ paintCount();
 const VEHICLES = ["avion","avioneta","cohete","carro","coche","auto","barco","buque","tren","tractor","camion","camioneta","moto","bicicleta","helicoptero","submarino","globo","crucero"];
 const PLACES = ["castillo","casa","edificio","iglesia","puente","faro","molino","planeta","luna","sol","arbol","flor","montana","granja","playa","bosque","ciudad","parque","escuela","hospital"];
 function norm(s) { return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+// Escape para interpolar texto de usuario en HTML (evita XSS via <img onerror=...>).
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 // Palabras de estilo que PELEAN con la receta (el modelo las obedece y arruina el
 // dibujo para colorear). Se quitan en silencio; la receta ya fija el estilo.
 const BAD_STYLE = new Set(["realistic","realista","realistas","photorealistic","fotorrealista","fotorrealistas","detailed","detallado","detallada","detallados","detalladas","shaded","sombreado","sombreada","sombreados","sombreadas","3d","render","photography","fotografia","photo","foto","fotos","hyperrealistic","cinematic","acuarela","watercolor","oleo","colorful","color","colores","gris","grises","oscuro","oscura","oscuros","oscuras","neon","brillante"]);
@@ -130,7 +132,7 @@ async function processImage(raw, u, host, opts) {
   const bold = $("style").value === "bold";
   const card = document.createElement("div");
   card.className = "page";
-  card.innerHTML = "<h3>" + String(raw).slice(0, 40) + "</h3>";
+  card.innerHTML = "<h3>" + esc(String(raw).slice(0, 40)) + "</h3>";
   const cv = document.createElement("canvas");
   if (COMPARE_RAW) {
     // TEMP-DIAG: (a) cruda tal cual la devuelve la API | (b) canvas tras paintLineArt().

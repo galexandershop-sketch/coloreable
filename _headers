@@ -1,6 +1,12 @@
 # Cloudflare Pages headers (equivalente a vercel.json).
 # Vercel sigue usando vercel.json; Cloudflare usa este archivo. Conviven sin conflicto.
-//
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+/
   Cache-Control: no-store, must-revalidate
 /index.html
   Cache-Control: no-store, must-revalidate

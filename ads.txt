@@ -1,0 +1,3 @@
+# ads.txt — autoriza a Google AdSense a vender anuncios en este dominio.
+# PENDIENTE: cuando AdSense apruebe el sitio, reemplaza XXXXXXXXXXXXXXXX con tu ID de editor.
+# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
