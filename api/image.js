@@ -1,15 +1,22 @@
 const MAX_BYTES = 8 * 1024 * 1024; // tope anti-abuso: line-art trabaja a 768px, mas es desperdicio
 const REF_OK = /localhost|127\.0\.0\.1|coloreable|vercel\.app|pages\.dev/i;
 
+function hostOf(v) {
+  try { return new URL(v).hostname.toLowerCase(); } catch (e) { return ""; }
+}
+
 export default async function handler(req, res) {
   // Anti-abuso: el proxy solo sirve a paginas del propio sitio.
-  // El <img> del navegador siempre manda Referer/Origin; curl directo o webs ajenas -> 403.
+  // Se acepta el mismo host (cubre dominios personalizados) + dominios conocidos.
   const ref = req.headers.referer || req.headers.origin || "";
-  if (!REF_OK.test(ref)) {
+  const host = String(req.headers.host || "").toLowerCase();
+  if ((hostOf(ref) !== host || !host) && !REF_OK.test(ref)) {
     return res.status(403).json({ error: "origen no permitido" });
   }
   const u = req.query.url;
-  if (!u || !/^https:\/\/.+\.(png|jpg|jpeg|webp)(\?.*)?$/i.test(u)) {
+  // La IA puede devolver URLs sin extension: no se filtra por extension,
+  // se valida esquema https y despues el content-type real.
+  if (!u || !/^https:\/\/[^\s"'<>]+$/i.test(u)) {
     return res.status(400).json({ error: "url invalida" });
   }
   try {

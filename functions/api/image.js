@@ -4,16 +4,23 @@
 const MAX_BYTES = 8 * 1024 * 1024; // tope anti-abuso: line-art trabaja a 768px, mas es desperdicio
 const REF_OK = /localhost|127\.0\.0\.1|coloreable|vercel\.app|pages\.dev/i;
 
+function hostOf(v) {
+  try { return new URL(v).hostname.toLowerCase(); } catch (e) { return ""; }
+}
+
 export async function onRequest(context) {
+  const reqUrl = new URL(context.request.url);
   // Anti-abuso: el proxy solo sirve a paginas del propio sitio.
+  // Se acepta el mismo host (cubre dominios personalizados) + dominios conocidos.
   const ref = context.request.headers.get("referer") || context.request.headers.get("origin") || "";
-  if (!REF_OK.test(ref)) {
+  if (hostOf(ref) !== reqUrl.hostname.toLowerCase() && !REF_OK.test(ref)) {
     return Response.json({ error: "origen no permitido" }, { status: 403 });
   }
-  const reqUrl = new URL(context.request.url);
   const u = reqUrl.searchParams.get("url");
 
-  if (!u || !/^https:\/\/.+\.(png|jpg|jpeg|webp)(\?.*)?$/i.test(u)) {
+  // La IA puede devolver URLs sin extension: no se filtra por extension,
+  // se valida esquema https y despues el content-type real.
+  if (!u || !/^https:\/\/[^\s"'<>]+$/i.test(u)) {
     return Response.json({ error: "url invalida" }, { status: 400 });
   }
 

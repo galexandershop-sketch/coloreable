@@ -175,7 +175,14 @@ async function processImage(raw, u, host, opts) {
   host.appendChild(card);
   // Handlers ANTES del line-art: si el usuario clica rapido, el boton ya responde.
   bPrint.onclick = () => printOne(cv);
-  bDown.onclick = () => { const a = document.createElement("a"); a.href = cv.toDataURL("image/png"); a.download = "colorear-" + Date.now() + ".png"; a.click(); };
+  bDown.onclick = () => {
+    try {
+      const a = document.createElement("a");
+      a.href = cv.toDataURL("image/png");
+      a.download = "colorear-" + Date.now() + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { status("No se pudo descargar: regenera el dibujo.", true); }
+  };
   bPaint.onclick = () => {
     if (!bPaint || bPaint.dataset.on || bPaint.disabled) return;
     bPaint.dataset.on = "1";
