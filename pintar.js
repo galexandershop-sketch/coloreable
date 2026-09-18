@@ -30,7 +30,11 @@ function attachPainter(baseCanvas, opts) {
   // nunca con la barra de herramientas (si la cubre, los clics en la paleta pintan en vez de elegir color).
   var stack = document.createElement("div");
   stack.className = "paint-stack";
-  wrap.appendChild(stack);
+  // Vista con scroll: al ampliar con zoom el dibujo crece y se recorre con scroll.
+  var view = document.createElement("div");
+  view.className = "zoom-view";
+  wrap.appendChild(view);
+  view.appendChild(stack);
   stack.appendChild(baseCanvas);
   var paint = document.createElement("canvas");
   paint.width = baseCanvas.width; paint.height = baseCanvas.height;
@@ -52,6 +56,10 @@ function attachPainter(baseCanvas, opts) {
   }
   html += '</div><div class="cur">Toca un color para cambiarlo. Color actual: <b class="pc">rojo</b></div>';
   html += '<label class="pw">Grosor <input type="range" min="2" max="40" value="12"> <output>12</output></label>';
+  html += '<div class="pzoom"><button type="button" data-t="zout" aria-label="Reducir zoom">−</button>' +
+    '<button type="button" data-t="zreset" class="pzval" title="Volver a 100%">100%</button>' +
+    '<button type="button" data-t="zin" aria-label="Ampliar zoom">+</button>' +
+    '<button type="button" data-t="move" title="Arrastrar para mover el dibujo ampliado">✋ Mover</button></div>';
   html += '<div class="ptools"><button type="button" data-t="brush" class="on">🖌️ Pincel</button>' +
     '<button type="button" data-t="fill">🪣 Rellenar</button>' +
     '<button type="button" data-t="eraser">🧽 Borrador</button>' +
@@ -63,11 +71,39 @@ function attachPainter(baseCanvas, opts) {
   // Barra SIEMPRE encima del dibujo, a la vista sin hacer scroll.
   // OJO: el canvas ya vive dentro de `stack`, asi que la referencia valida es `stack`
   // (con `baseCanvas` insertBefore lanza NotFoundError y rompe TODO el pintor).
-  wrap.insertBefore(bar, stack);
+  wrap.insertBefore(bar, view);
   bar.querySelector('.sw[data-c="#e74c3c"]').setAttribute("aria-pressed", "true");
-  var S = { color: PALETTE[0], size: 12, tool: "brush", drawing: false, last: null, prevMid: null, stack: [], redo: [] };
+  var S = { color: PALETTE[0], size: 12, tool: "brush", drawing: false, last: null, prevMid: null, stack: [], redo: [], zoomIx: 0, pan: false, panning: false };
   // Estado POR instancia: con "Cantidad: 2/4/6" hay varios dibujos y cada uno debe pintar en su capa.
-  var state = { S: S, paint: paint, pctx: pctx, bar: bar, PALETTE: PALETTE, NAMES: NAMES };
+  var state = { S: S, paint: paint, pctx: pctx, bar: bar, PALETTE: PALETTE, NAMES: NAMES, zoom: 1 };
+  // Zoom 1x-4x: se escala el stack completo (base + capa) con CSS; pos() usa
+  // getBoundingClientRect asi que las coordenadas de pintura siguen exactas.
+  var ZOOMS = [1, 1.25, 1.5, 2, 2.5, 3, 4];
+  state.ZOOMS = ZOOMS;
+  state.view = view;
+  function applyZoom() {
+    var z = ZOOMS[S.zoomIx] || 1;
+    state.zoom = z;
+    stack.style.transform = z === 1 ? "" : "scale(" + z + ")";
+    var lbl = bar.querySelector(".pzval");
+    if (lbl) lbl.textContent = Math.round(z * 100) + "%";
+    var bin = bar.querySelector('[data-t="zin"]');
+    var bout = bar.querySelector('[data-t="zout"]');
+    if (bin) bin.disabled = S.zoomIx >= ZOOMS.length - 1;
+    if (bout) bout.disabled = S.zoomIx <= 0;
+    if (z === 1 && S.pan) setPan(false); // a 100% no hace falta mover
+    if (state.syncCursor) state.syncCursor();
+  }
+  function setPan(on) {
+    S.pan = !!on;
+    var b = bar.querySelector('[data-t="move"]');
+    if (b) b.classList.toggle("on", S.pan);
+    paint.style.touchAction = S.pan ? "pan-x pan-y" : "none";
+    paint.classList.toggle("panning", S.pan);
+    if (state.syncCursor) state.syncCursor();
+  }
+  state.applyZoom = applyZoom;
+  state.setPan = setPan;
   paint.__paintState = state;
   bar.__paintState = state;
   window.__paint = state; // compatibilidad (depuracion / ultimo pintor creado)
@@ -81,10 +117,13 @@ function attachPainter(baseCanvas, opts) {
   stack.appendChild(cursor);
   paint.style.cursor = "none";
   function syncCursor() {
+    if (S.pan) { cursor.style.display = "none"; paint.style.cursor = "grab"; return; }
     if (S.tool !== "brush" && S.tool !== "eraser") { cursor.style.display = "none"; paint.style.cursor = "pointer"; return; }
     paint.style.cursor = "none";
     var r = paint.getBoundingClientRect();
-    var dd = Math.max(6, S.size * (r.width / Math.max(1, paint.width)));
+    // El anillo vive dentro del stack escalado: dividir por zoom para tamano real.
+    var z = state.zoom || 1;
+    var dd = Math.max(6, S.size * (r.width / Math.max(1, paint.width)) / z);
     cursor.style.display = "block";
     cursor.style.width = dd + "px"; cursor.style.height = dd + "px";
     if (S.tool === "eraser") { cursor.style.border = "2px dashed #888"; cursor.style.background = "rgba(255,255,255,.35)"; }
@@ -95,8 +134,9 @@ function attachPainter(baseCanvas, opts) {
   paint.addEventListener("pointermove", function (e) {
     if (e.pointerType === "touch") { cursor.style.display = "none"; return; }
     var r = paint.getBoundingClientRect();
-    cursor.style.left = (e.clientX - r.left) + "px";
-    cursor.style.top = (e.clientY - r.top) + "px";
+    var z = state.zoom || 1;
+    cursor.style.left = ((e.clientX - r.left) / z) + "px";
+    cursor.style.top = ((e.clientY - r.top) / z) + "px";
     if (S.tool === "brush" || S.tool === "eraser") syncCursor();
   });
   paint.addEventListener("pointerleave", function () { cursor.style.display = "none"; });
@@ -314,6 +354,14 @@ window.attachPainter = attachPainter;
     var st = t.__paintState || window.__paint;
     if (!st) return;
     active = st;
+    // Modo Mover: arrastrar desplaza el scroll en vez de pintar (recorrer el zoom).
+    if (st.S.pan) {
+      st.S.panning = true;
+      var vw = st.view || null;
+      st.S.panStart = { x: e.clientX, y: e.clientY, sl: vw ? vw.scrollLeft : 0, st2: vw ? vw.scrollTop : 0 };
+      try { t.setPointerCapture(e.pointerId); } catch (err) {}
+      return; // sin preventDefault: el tactil usa scroll nativo
+    }
     e.preventDefault();
     try { t.setPointerCapture(e.pointerId); } catch (err) {}
     var q = pos(e, st);
@@ -362,6 +410,12 @@ window.attachPainter = attachPainter;
   }, true);
   document.addEventListener("pointermove", function (e) {
     if (!active) return;
+    if (active.S.panning) {
+      var vw2 = active.view;
+      var ps = active.S.panStart;
+      if (vw2 && ps) { vw2.scrollLeft = ps.sl - (e.clientX - ps.x); vw2.scrollTop = ps.st2 - (e.clientY - ps.y); }
+      return;
+    }
     e.preventDefault();
     var evts = (e.getCoalescedEvents && e.getCoalescedEvents()) || [e];
     if (!evts.length) evts = [e];
@@ -371,7 +425,7 @@ window.attachPainter = attachPainter;
   }, true);
   ["pointerup", "pointercancel"].forEach(function (t) {
     document.addEventListener(t, function () {
-      if (active) { active.S.drawing = false; active.S.last = null; active.S.prevMid = null; }
+      if (active) { active.S.drawing = false; active.S.last = null; active.S.prevMid = null; active.S.panning = false; }
       active = null;
     }, true);
   });
@@ -402,6 +456,14 @@ window.attachPainter = attachPainter;
       bar.querySelector('[data-t="eraser"]').classList.toggle("on", t === "eraser");
       bar.querySelector('[data-t="fill"]').classList.toggle("on", t === "fill");
       if (p.syncCursor) p.syncCursor();
+    } else if (t === "zin" || t === "zout" || t === "zreset") {
+      var zs = p.ZOOMS || [1];
+      if (t === "zin") p.S.zoomIx = Math.min(zs.length - 1, (p.S.zoomIx || 0) + 1);
+      else if (t === "zout") p.S.zoomIx = Math.max(0, (p.S.zoomIx || 0) - 1);
+      else p.S.zoomIx = 0;
+      if (p.applyZoom) p.applyZoom();
+    } else if (t === "move") {
+      if (p.setPan) p.setPan(!p.S.pan);
     } else if (t === "undo") {
       var prev = p.S.stack.pop();
       if (prev) {
