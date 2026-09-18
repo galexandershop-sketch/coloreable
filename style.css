@@ -34,6 +34,8 @@ select { padding: 8px 10px; border-radius: 10px; border: 2px solid var(--line); 
 .how, .seo { max-width: 680px; margin: 0 auto; padding: 10px 20px 30px; }
 .cats { display: flex; gap: 8px; flex-wrap: wrap; }
 .cats button { border: 1.5px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.cats a { border: 1.5px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: .85rem; color: var(--ink); text-decoration: none; }
+.cats a:hover { border-color: var(--brand); }
 footer { text-align: center; color: var(--mut); font-size: .8rem; padding: 20px; }
 #bulk h2, #catalog h2 { margin: 0 0 4px; font-size: 1.2rem; }
 #bulk .sub, #catalog .sub { color: var(--mut); font-size: .9rem; margin: 0 0 12px; }
@@ -51,6 +53,17 @@ footer { text-align: center; color: var(--mut); font-size: .8rem; padding: 20px;
 .catcard p { margin: 0 0 4px; font-size: .8rem; color: var(--mut); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .catcard .btn-mini { align-self: flex-start; padding: 6px 12px; }
 input[type=number], input[type=search] { padding: 8px 10px; border-radius: 10px; border: 2px solid var(--line); font-size: 1rem; font-family: inherit; }
+/* Paginas SEO (/dibujos-de-X-para-colorear) */
+.crumb { font-size: .82rem; color: var(--mut); margin-bottom: 6px; }
+.crumb a { color: var(--brand); }
+#seo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 16px 0; }
+#seo-grid figure { margin: 0; background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 12px; text-align: center; }
+#seo-grid canvas { width: 100%; border-radius: 10px; background: #fff; }
+#seo-grid figcaption { font-size: .82rem; color: var(--mut); margin-top: 6px; }
+#seo-grid .seo-fail canvas { opacity: .35; }
+#seo-status { min-height: 26px; margin-top: 10px; font-size: .92rem; color: var(--mut); }
+#seo-status.err { color: #c0392b; }
+.seo-h2 { margin: 18px 0 6px; font-size: 1.1rem; }
 @media print { header, main, .how, .seo, footer, .page .actions, .page h3 { display: none !important; } .gallery { display: block; } .page { border: none; } }
 /* Hoja de impresion dentro de la pagina (sin popups): oculta en pantalla,
    visible solo al imprimir cuando body trae .printing-sheet. */
