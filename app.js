@@ -375,15 +375,137 @@ function galleryBases() {
   });
   return out;
 }
+// ---------- Impresion: version editada + layouts ----------
+// El pintor dibuja en una capa aparte (.paint-layer); el canvas base solo tiene el line-art.
+// Para imprimir lo pintado hay que fusionar ambas capas (multiply, como se ve en pantalla).
+function paintLayerOf(baseCv) {
+  try {
+    var stack = baseCv.closest ? baseCv.closest(".paint-stack") : null;
+    if (stack) return stack.querySelector(".paint-layer");
+    var p = baseCv.parentNode;
+    if (p && p.querySelector) return p.querySelector(".paint-layer");
+  } catch (e) {}
+  return null;
+}
+// ¿La capa tiene algo pintado? Muestreo de alfa (rapido aun en 768x768).
+function paintHasContent(paint) {
+  try {
+    var w = paint.width, h = paint.height;
+    if (!w || !h) return false;
+    var d = paint.getContext("2d").getImageData(0, 0, w, h).data;
+    for (var i = 3; i < d.length; i += 64) { if (d[i] > 8) return true; }
+  } catch (e) {}
+  return false;
+}
+// Fusiona base + capa -> { original, edited|null }. Null edited si no hay edicion.
+function compositeURL(baseCv) {
+  var out = { original: null, edited: null };
+  try { out.original = baseCv.toDataURL("image/png"); } catch (e) { return out; }
+  var paint = paintLayerOf(baseCv);
+  if (!paint || !paintHasContent(paint)) return out;
+  try {
+    var c = document.createElement("canvas");
+    c.width = baseCv.width; c.height = baseCv.height;
+    var x = c.getContext("2d");
+    x.drawImage(baseCv, 0, 0);
+    x.globalCompositeOperation = "multiply";
+    x.drawImage(paint, 0, 0, c.width, c.height);
+    x.globalCompositeOperation = "source-over";
+    out.edited = c.toDataURL("image/png");
+  } catch (e) { out.edited = null; }
+  return out;
+}
+// Dialogo de impresion: version (solo si hay edicion) + tamano + tip de encabezados.
+function openPrintDialog(items) {
+  items = (items || []).filter(function (it) { return it && (it.original || it.edited); });
+  if (!items.length) { status("No se pudieron leer los dibujos.", true); return; }
+  var anyEdited = items.some(function (it) { return !!it.edited; });
+  var ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(43,33,24,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px";
+  var box = document.createElement("div");
+  box.style.cssText = "background:#fffdf8;border-radius:14px;max-width:430px;width:100%;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);color:#2b2118";
+  var h = document.createElement("h3");
+  h.textContent = items.length > 1 ? "Imprimir " + items.length + " dibujos" : "Imprimir dibujo";
+  h.style.margin = "0 0 10px";
+  box.appendChild(h);
+  function group(title, name, opts, def) {
+    var fs = document.createElement("div");
+    fs.style.margin = "0 0 10px";
+    var t = document.createElement("div");
+    t.textContent = title;
+    t.style.fontWeight = "700"; t.style.marginBottom = "4px";
+    fs.appendChild(t);
+    opts.forEach(function (o) {
+      var lab = document.createElement("label");
+      lab.style.display = "block"; lab.style.margin = "4px 0"; lab.style.cursor = "pointer";
+      var r = document.createElement("input");
+      r.type = "radio"; r.name = name; r.value = o[0];
+      if (o[0] === def) r.checked = true;
+      lab.appendChild(r);
+      lab.appendChild(document.createTextNode(" " + o[1]));
+      fs.appendChild(lab);
+    });
+    box.appendChild(fs);
+  }
+  if (anyEdited) group("Versión", "pver", [["mine", "Mi versión coloreada"], ["orig", "Original en blanco y negro"]], "mine");
+  group("Tamaño", "psize", [["full", "Página completa (1 por hoja)"], ["half", "Media página (2 por hoja)"], ["quad", "Pequeños (4 por hoja)"]], "full");
+  var tip = document.createElement("p");
+  tip.style.cssText = "font-size:.82rem;color:#8a7a6a;margin:6px 0 12px";
+  tip.textContent = "Tip: en la ventana de impresión desactiva “Encabezados y pies de página” para que no salgan fecha ni dirección web.";
+  box.appendChild(tip);
+  var row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:10px;justify-content:flex-end";
+  var bC = document.createElement("button"); bC.className = "btn-ghost"; bC.textContent = "Cancelar";
+  var bP = document.createElement("button"); bP.className = "btn-primary"; bP.textContent = "Imprimir";
+  row.append(bC, bP); box.appendChild(row);
+  ov.appendChild(box); document.body.appendChild(ov);
+  function sel(name) { var r = box.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : null; }
+  bC.onclick = function () { ov.remove(); };
+  ov.addEventListener("mousedown", function (e) { if (e.target === ov) ov.remove(); });
+  bP.onclick = function () {
+    var ver = anyEdited ? sel("pver") : "orig";
+    var size = sel("psize") || "full";
+    ov.remove();
+    launchPrint(items, ver, size);
+  };
+}
+function launchPrint(items, ver, size) {
+  var srcs = items.map(function (it) { return (ver === "mine" && it.edited) ? it.edited : (it.original || it.edited); }).filter(Boolean);
+  if (!srcs.length) { status("No se pudieron leer los dibujos.", true); return; }
+  // Sin scripts inline en la hoja (el CSP de la pagina se hereda al popup y los bloquearia):
+  // la impresion se dispara desde esta ventana (opener).
+  var css = "@page{margin:12mm}body{margin:0;background:#fff;font-family:sans-serif}" +
+    "figure{margin:0}" +
+    ".full figure:not(:last-child){page-break-after:always;break-after:page}" +
+    ".full img{display:block;width:auto;max-width:100%;max-height:94vh;margin:0 auto}" +
+    ".half img{display:block;width:auto;max-width:100%;max-height:44vh;margin:0 auto 8mm;page-break-inside:avoid}" +
+    ".quad .wrap{display:grid;grid-template-columns:1fr 1fr;gap:6mm;align-items:center}" +
+    ".quad img{display:block;width:100%;height:auto;max-height:40vh;object-fit:contain;page-break-inside:avoid}";
+  var inner;
+  if (size === "quad") {
+    inner = '<div class="wrap">' + srcs.map(function (s) { return '<img src="' + s + '">'; }).join("") + "</div>";
+  } else {
+    inner = srcs.map(function (s) { return '<figure><img src="' + s + '"></figure>'; }).join("");
+  }
+  var html = "<html><head><title>Colorable</title><style>" + css + "</style></head>" +
+    '<body class="' + size + '">' + inner + "</body></html>";
+  var w = window.open("", "_blank");
+  if (!w) { status("El navegador bloqueó la ventana de impresión.", true); return; }
+  w.document.write(html);
+  w.document.close();
+  var done = false;
+  var go = function () {
+    if (done) return; done = true;
+    try { w.focus(); w.print(); } catch (e) {}
+  };
+  try { w.onload = function () { setTimeout(go, 350); }; } catch (e) {}
+  setTimeout(go, 2500); // respaldo si onload ya pasó
+}
 function printAll() {
   const bases = galleryBases();
   if (!bases.length) { status("No hay dibujos en la galeria para imprimir.", true); return; }
-  const imgs = [];
-  for (const cv of bases) { try { imgs.push(cv.toDataURL("image/png")); } catch (e) {} }
-  if (!imgs.length) { status("No se pudieron leer los dibujos.", true); return; }
-  const w = window.open("", "_blank");
-  w.document.write('<html><head><title>Paquete para colorear</title><style>body{margin:0}img{width:100%;max-width:800px;page-break-inside:avoid;display:block;margin:0 auto}</style></head><body>' + imgs.map(s => '<img src="' + s + '">').join("") + '<scr' + 'ipt>window.onload=function(){window.print();}</scr' + 'ipt></body></html>');
-  w.document.close();
+  const items = bases.map(function (cv) { var u = compositeURL(cv); return { original: u.original, edited: u.edited }; });
+  openPrintDialog(items);
 }
 async function downloadAll() {
   const bases = galleryBases();
@@ -702,9 +824,9 @@ function renderCatalog() {
 $("catQ").oninput = () => { catShown = CAT_PAGE; renderCatalog(); };
 renderCatChips(); renderCatalog();
 function printOne(cv) {
-  const w = window.open("", "_blank");
-  w.document.write('<html><head><title>Colorear</title><style>body{margin:0;display:flex;justify-content:center}img{width:100%;max-width:800px}</style></head><body><img src="' + cv.toDataURL("image/png") + '" onload="window.print();"></body></html>');
-  w.document.close();
+  var u = compositeURL(cv);
+  if (!u.original && !u.edited) { status("No se pudo leer el dibujo.", true); return; }
+  openPrintDialog([{ original: u.original, edited: u.edited }]);
 }
 // Carga via proxy propio (/api/image) para evitar CORS, luego Sobel -> line-art.
 function lineArt(url, cv, bold, label) {
