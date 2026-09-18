@@ -1,4 +1,4 @@
-.painter { position: relative; background: #fff; border-radius: 10px; max-width: 560px; margin: 0 auto; }
+.painter { position: relative; background: #fff; border-radius: 10px; max-width: 100%; margin: 0 auto; }
 .paint-stack { position: relative; line-height: 0; }
 .painter canvas.base-cv { position: relative; z-index: 1; display: block; width: 100%; height: auto; }
 .paint-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; touch-action: none; cursor: crosshair; border-radius: 10px; }
@@ -21,7 +21,9 @@
 .brush-cursor { position: absolute; z-index: 3; pointer-events: none; border-radius: 50%; transform: translate(-50%, -50%); }
 /* Zoom: la vista recorta con scroll cuando el dibujo se amplia. El stack se escala
    con transform (origen arriba-izquierda) para que el scroll recorra todo. */
-.zoom-view { overflow: auto; max-height: 72vh; background: #fff; border-radius: 10px; }
+.zoom-view { overflow: visible; background: #fff; border-radius: 10px; }
+/* Solo con zoom se recorta con scroll; a 100% el dibujo se ve completo igual que en la galeria. */
+.zoom-view.zoomed { overflow: auto; max-height: 72vh; }
 .paint-stack { transform-origin: 0 0; }
 .pzoom { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; align-items: center; }
 .pzoom button { border: 2px solid var(--line); background: #fff; border-radius: 10px; padding: 6px 10px; cursor: pointer; font-size: .8rem; }

@@ -85,6 +85,7 @@ function attachPainter(baseCanvas, opts) {
     var z = ZOOMS[S.zoomIx] || 1;
     state.zoom = z;
     stack.style.transform = z === 1 ? "" : "scale(" + z + ")";
+    view.classList.toggle("zoomed", z !== 1);
     var lbl = bar.querySelector(".pzval");
     if (lbl) lbl.textContent = Math.round(z * 100) + "%";
     var bin = bar.querySelector('[data-t="zin"]');
