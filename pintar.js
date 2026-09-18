@@ -1,7 +1,8 @@
 function attachPainter(baseCanvas, opts) {
   opts = opts || {};
+  if (!baseCanvas || !baseCanvas.width) return null;
+  if (!baseCanvas.parentNode) return null; // canvas fuera del DOM (fallback <img>): no pintar
   if (baseCanvas.dataset.paint === "1") return null;
-  if (!baseCanvas.width) return null;
   baseCanvas.dataset.paint = "1";
   baseCanvas.classList.add("base-cv");
   var wrap = document.createElement("div");

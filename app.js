@@ -54,8 +54,8 @@ async function gen() {
         if (bPaint.dataset.on) return;
         bPaint.dataset.on = "1";
         bPaint.textContent = "Coloreando...";
-        attachPainter(cv);
-        bPaint.textContent = "Listo para pintar";
+        var ok = attachPainter(cv);
+        bPaint.textContent = ok ? "Listo para pintar" : "No disponible (recarga el dibujo)";
       };
     }
     made += imgs.length;
