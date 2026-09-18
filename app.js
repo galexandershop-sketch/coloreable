@@ -175,14 +175,7 @@ async function processImage(raw, u, host, opts) {
   host.appendChild(card);
   // Handlers ANTES del line-art: si el usuario clica rapido, el boton ya responde.
   bPrint.onclick = () => printOne(cv);
-  bDown.onclick = () => {
-    try {
-      const a = document.createElement("a");
-      a.href = cv.toDataURL("image/png");
-      a.download = "colorear-" + Date.now() + ".png";
-      document.body.appendChild(a); a.click(); a.remove();
-    } catch (e) { status("No se pudo descargar: regenera el dibujo.", true); }
-  };
+  bDown.onclick = () => downloadOne(cv);
   bPaint.onclick = () => {
     if (!bPaint || bPaint.dataset.on || bPaint.disabled) return;
     bPaint.dataset.on = "1";
@@ -530,8 +523,9 @@ async function downloadAll() {
       const zip = new window.JSZip();
       let i = 0;
       for (const cv of bases) {
-        let url = "";
-        try { url = cv.toDataURL("image/png"); } catch (e) { continue; }
+        // Si la tarjeta se pinto, el ZIP lleva la version coloreada.
+        const url = canvasExportURL(cv) || "";
+        if (!url) continue;
         const b64 = url.split(",")[1];
         if (!b64) continue;
         i++;
@@ -556,8 +550,10 @@ async function downloadAll() {
   let j = 0;
   for (const cv of bases) {
     try {
+      const url = canvasExportURL(cv);
+      if (!url) continue;
       const a = document.createElement("a");
-      a.href = cv.toDataURL("image/png");
+      a.href = url;
       a.download = "colorear-paquete-" + (++j) + ".png";
       document.body.appendChild(a); a.click(); a.remove();
     } catch (e) {}
@@ -840,6 +836,59 @@ function printOne(cv) {
   var u = compositeURL(cv);
   if (!u.original && !u.edited) { status("No se pudo leer el dibujo.", true); return; }
   openPrintDialog([{ original: u.original, edited: u.edited }]);
+}
+// Descarga una tarjeta: si hay pintura ofrece version coloreada u original
+// (igual que el dialogo de impresion); sin edicion descarga directo.
+function canvasExportURL(cv) {
+  try {
+    var u = compositeURL(cv);
+    return u.edited || u.original || null;
+  } catch (e) { return null; }
+}
+function saveURL(url, name) {
+  if (!url) { status("No se pudo leer el dibujo.", true); return; }
+  try {
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { status("No se pudo descargar: regenera el dibujo.", true); }
+}
+function downloadOne(cv) {
+  var u = compositeURL(cv);
+  if (!u.original && !u.edited) { status("No se pudo leer el dibujo.", true); return; }
+  if (!u.edited) { saveURL(u.original, "colorear-" + Date.now() + ".png"); return; }
+  var ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(43,33,24,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px";
+  var box = document.createElement("div");
+  box.style.cssText = "background:#fffdf8;border-radius:14px;max-width:380px;width:100%;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);color:#2b2118";
+  var h = document.createElement("h3");
+  h.textContent = "Descargar dibujo";
+  h.style.margin = "0 0 10px";
+  box.appendChild(h);
+  [["mine", "Mi versión coloreada"], ["orig", "Original en blanco y negro"]].forEach(function (o, ix) {
+    var lab = document.createElement("label");
+    lab.style.display = "block"; lab.style.margin = "4px 0"; lab.style.cursor = "pointer";
+    var r = document.createElement("input");
+    r.type = "radio"; r.name = "dver"; r.value = o[0];
+    if (ix === 0) r.checked = true;
+    lab.appendChild(r);
+    lab.appendChild(document.createTextNode(" " + o[1]));
+    box.appendChild(lab);
+  });
+  var row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:10px;justify-content:flex-end;margin-top:12px";
+  var bC = document.createElement("button"); bC.className = "btn-ghost"; bC.textContent = "Cancelar";
+  var bD = document.createElement("button"); bD.className = "btn-primary"; bD.textContent = "Descargar";
+  row.append(bC, bD); box.appendChild(row);
+  ov.appendChild(box); document.body.appendChild(ov);
+  bC.onclick = function () { ov.remove(); };
+  ov.addEventListener("mousedown", function (e) { if (e.target === ov) ov.remove(); });
+  bD.onclick = function () {
+    var sel = box.querySelector('input[name="dver"]:checked');
+    var src = (sel && sel.value === "orig") ? (u.original || u.edited) : (u.edited || u.original);
+    ov.remove();
+    saveURL(src, "coloreado-" + Date.now() + ".png");
+  };
 }
 // Carga via proxy propio (/api/image) para evitar CORS, luego Sobel -> line-art.
 function lineArt(url, cv, bold, label) {
