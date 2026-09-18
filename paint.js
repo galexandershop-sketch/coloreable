@@ -26,7 +26,7 @@ function attachPainter(baseCanvas, opts) {
   for (var i = 0; i < PALETTE.length; i++) {
     html += '<button type="button" class="sw" data-c="' + PALETTE[i] + '" style="background:' + PALETTE[i] + '" aria-label="color"></button>';
   }
-  html += '</div><div class="cur">Color: <b id="pc">rojo</b></div>';
+  html += '</div><div class="cur">Toca un color para cambiarlo. Color actual: <b class="pc">rojo</b></div>';
   html += '<label class="pw">Grosor <input type="range" min="2" max="40" value="12"> <output>12</output></label>';
   html += '<div class="ptools"><button type="button" data-t="brush" class="on">Pincel</button>' +
     '<button type="button" data-t="fill">Rellenar</button>' +
@@ -35,7 +35,8 @@ function attachPainter(baseCanvas, opts) {
     '<button type="button" data-t="clear">Limpiar</button>' +
     '<button type="button" data-t="save" class="save">Guardar</button></div>';
   bar.innerHTML = html;
-  wrap.appendChild(bar);
+  // Barra SIEMPRE encima del dibujo, a la vista sin hacer scroll.
+  wrap.insertBefore(bar, baseCanvas);
   bar.querySelector('.sw[data-c="#e74c3c"]').setAttribute("aria-pressed", "true");
   var S = { color: PALETTE[0], size: 12, tool: "brush", drawing: false, last: null, stack: [] };
   window.__paint = { S: S, paint: paint, pctx: pctx, bar: bar, PALETTE: PALETTE, NAMES: NAMES };
@@ -134,7 +135,7 @@ window.attachPainter = attachPainter;
       bar.querySelector('[data-t="brush"]').classList.add("on");
       bar.querySelector('[data-t="eraser"]').classList.remove("on");
       bar.querySelector('[data-t="fill"]').classList.remove("on");
-      bar.querySelector("#pc").textContent = p.NAMES[p.S.color] || p.S.color;
+      bar.querySelector(".pc").textContent = p.NAMES[p.S.color] || p.S.color;
       return;
     }
     var b = e.target.closest ? e.target.closest("button[data-t]") : null;
