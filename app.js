@@ -505,9 +505,35 @@ function launchPrint(items, ver, size) {
     try { window.onafterprint = null; } catch (e) {}
   };
   try { window.onafterprint = function () { cleanup(); }; } catch (e) {}
-  try { window.focus(); window.print(); }
-  catch (e) { cleanup(); status("No se pudo abrir la impresión.", true); return; }
-  setTimeout(cleanup, 120000); // respaldo si afterprint no dispara
+  var imgs = sheet.querySelectorAll("img");
+  var pending = imgs.length;
+  var printed = false;
+  var doPrint = function () {
+    if (printed) return; printed = true;
+    clearTimeout(waitTo);
+    status("");
+    try { window.focus(); window.print(); }
+    catch (e) { cleanup(); status("No se pudo abrir la impresión.", true); return; }
+    setTimeout(cleanup, 120000); // respaldo si afterprint no dispara
+  };
+  if (!pending) { doPrint(); return; }
+  // Las imagenes (data URL grandes) decodifican async: si se imprime antes,
+  // la vista previa sale en blanco. Esperar a todas, con tope de 4s.
+  status("Preparando hoja de impresión...");
+  var waitTo = setTimeout(doPrint, 4000);
+  var watch = function (im) {
+    var ok = false;
+    var one = function () {
+      if (ok) return; ok = true;
+      pending--;
+      if (pending <= 0) doPrint();
+    };
+    if (im.complete && im.naturalWidth > 0) { one(); return; }
+    im.addEventListener("load", one);
+    im.addEventListener("error", one);
+    if (im.decode) { try { im.decode().then(one, one); } catch (e) {} }
+  };
+  for (var k = 0; k < imgs.length; k++) watch(imgs[k]);
 }
 function printAll() {
   const bases = galleryBases();
