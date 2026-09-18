@@ -43,12 +43,20 @@ async function gen() {
       row.className = "actions";
       const bPrint = document.createElement("button"); bPrint.className = "btn-mini"; bPrint.textContent = "Imprimir";
       const bDown = document.createElement("button"); bDown.className = "btn-mini alt"; bDown.textContent = "Descargar";
-      row.append(bPrint, bDown);
+      const bPaint = document.createElement("button"); bPaint.className = "btn-mini alt"; bPaint.textContent = "Colorear aqui";
+      row.append(bPrint, bDown, bPaint);
       card.appendChild(row);
       $("result").appendChild(card);
       await lineArt(u, cv, bold, raw);
       bPrint.onclick = () => printOne(cv);
       bDown.onclick = () => { const a = document.createElement("a"); a.href = cv.toDataURL("image/png"); a.download = "colorear-" + Date.now() + ".png"; a.click(); };
+      bPaint.onclick = () => {
+        if (bPaint.dataset.on) return;
+        bPaint.dataset.on = "1";
+        bPaint.textContent = "Coloreando...";
+        attachPainter(cv);
+        bPaint.textContent = "Listo para pintar";
+      };
     }
     made += imgs.length;
     localStorage.setItem("made", made);

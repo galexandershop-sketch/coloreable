@@ -1,0 +1,11 @@
+.painter { position: relative; }
+.paint-layer { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.paint-bar { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.sw { width: 30px; height: 30px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
+.sw[aria-pressed="true"] { border-color: #2b2118; transform: scale(1.15); }
+.pw { font-size: .85rem; display: flex; gap: 8px; align-items: center; justify-content: center; }
+.ptools { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.ptools button { border: 2px solid var(--line); background: #fff; border-radius: 10px; padding: 6px 12px; cursor: pointer; font-size: .82rem; }
+.ptools button.on { background: #2b2118; color: #fff; border-color: #2b2118; }
+.ptools .save { background: var(--brand2); color: #fff; border-color: var(--brand2); font-weight: 700; }
