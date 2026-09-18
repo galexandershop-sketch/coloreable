@@ -58,7 +58,7 @@ function pageHTML(e, slug, sibs, idx) {
   const prompts = VAR6.map((v) => (e.p + v).trim());
   const data = JSON.stringify({ topic: e.t, slug, prompts }).replace(/</g, "\\u003c");
   const items = prompts.map((p, n) => `    {"@type":"ListItem","position":${n + 1},"item":{"@type":"CreativeWork","name":"Dibujo ${n + 1} de ${esc(e.t)} para colorear","text":${JSON.stringify(p)}}}`).join(",\n");
-  const figs = prompts.map((p, n) => `      <figure><canvas id="seo-cv-${n}" width="0" height="0"></canvas><figcaption>Creando dibujo ${n + 1}...</figcaption></figure>`).join("\n");
+  const figs = prompts.map((p, n) => `      <figure><canvas id="seo-cv-${n}" width="0" height="0"></canvas><figcaption>Creando dibujo ${n + 1}...</figcaption><button type="button" class="btn-mini alt seo-again" data-i="${n}">🔄 Otra versión</button></figure>`).join("\n");
   const sibLinks = sibs.map((x) => `        <a href="/${x.slug}/">Dibujos de ${esc(x.t)}</a>`).join("\n");
   return `<!DOCTYPE html>
 <html lang="es">
@@ -122,7 +122,7 @@ ${sibLinks}
 <script type="application/json" id="seo-data">${data}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="/lineart.js?v=1"></script>
-<script src="/seo-page.js?v=1"></script>
+<script src="/seo-page.js?v=2"></script>
 </body>
 </html>
 `;

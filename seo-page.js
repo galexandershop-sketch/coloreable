@@ -54,6 +54,11 @@
     if (cap) cap.textContent = caption;
   }
   function failFigure(fig, prompt, caption) {
+    if (fig.querySelector(".seo-again")) {
+      var cap = fig.querySelector("figcaption");
+      if (cap) cap.textContent = "Falló: dale a 🔄 Otra versión.";
+      return;
+    }
     fig.classList.add("seo-fail");
     var b = document.createElement("button");
     b.className = "btn-mini alt"; b.type = "button"; b.textContent = "Reintentar";
@@ -134,17 +139,78 @@
       try { srcs.push(cvs[i].toDataURL("image/png")); } catch (e) {}
     }
     if (!srcs.length) { status("No se pudieron leer los dibujos.", true); return; }
+    openPrintSizeDialog(srcs);
+  }
+  // Dialogo de tamano (1, 2 o 4 por hoja), igual que en la app principal.
+  function openPrintSizeDialog(srcs) {
+    var ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(43,33,24,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px";
+    var box = document.createElement("div");
+    box.style.cssText = "background:#fffdf8;border-radius:14px;max-width:430px;width:100%;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);color:#2b2118";
+    var h = document.createElement("h3");
+    h.textContent = srcs.length > 1 ? "Imprimir " + srcs.length + " dibujos" : "Imprimir dibujo";
+    h.style.margin = "0 0 10px";
+    box.appendChild(h);
+    var fs = document.createElement("div");
+    fs.style.margin = "0 0 10px";
+    var t = document.createElement("div");
+    t.textContent = "Tamaño";
+    t.style.fontWeight = "700"; t.style.marginBottom = "4px";
+    fs.appendChild(t);
+    [["full", "Página completa (1 por hoja)"], ["half", "Media página (2 por hoja)"], ["quad", "Pequeños (4 por hoja)"]].forEach(function (o) {
+      var lab = document.createElement("label");
+      lab.style.display = "block"; lab.style.margin = "4px 0"; lab.style.cursor = "pointer";
+      var r = document.createElement("input");
+      r.type = "radio"; r.name = "psize"; r.value = o[0];
+      if (o[0] === "half") r.checked = true;
+      lab.appendChild(r);
+      lab.appendChild(document.createTextNode(" " + o[1]));
+      fs.appendChild(lab);
+    });
+    box.appendChild(fs);
+    var tip = document.createElement("p");
+    tip.style.cssText = "font-size:.82rem;color:#8a7a6a;margin:6px 0 12px";
+    tip.textContent = "Tip: en la ventana de impresión desactiva “Encabezados y pies de página” para que no salgan fecha ni dirección web.";
+    box.appendChild(tip);
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:10px;justify-content:flex-end";
+    var bC = document.createElement("button"); bC.className = "btn-ghost"; bC.textContent = "Cancelar";
+    var bP = document.createElement("button"); bP.className = "btn-primary"; bP.textContent = "Imprimir";
+    row.append(bC, bP); box.appendChild(row);
+    ov.appendChild(box); document.body.appendChild(ov);
+    bC.onclick = function () { ov.remove(); };
+    ov.addEventListener("mousedown", function (e) { if (e.target === ov) ov.remove(); });
+    bP.onclick = function () {
+      var sel = box.querySelector('input[name="psize"]:checked');
+      var size = sel ? sel.value : "half";
+      ov.remove();
+      launchSheet(srcs, size);
+    };
+  }
+  function launchSheet(srcs, size) {
     var old = document.getElementById("printSheet");
     if (old) old.remove();
     document.body.classList.remove("printing-sheet");
     var sheet = document.createElement("div");
-    sheet.id = "printSheet"; sheet.className = "ps-half"; // 6 dibujos: 2 por hoja
-    srcs.forEach(function (s, n) {
-      var fig = document.createElement("figure");
-      var im = document.createElement("img");
-      im.src = s; im.alt = "Dibujo " + (n + 1) + " para colorear";
-      fig.appendChild(im); sheet.appendChild(fig);
-    });
+    sheet.id = "printSheet";
+    sheet.className = size === "quad" ? "ps-quad" : (size === "half" ? "ps-half" : "ps-full");
+    if (size === "quad") {
+      var wrap = document.createElement("div");
+      wrap.className = "pwrap";
+      srcs.forEach(function (s, n) {
+        var im = document.createElement("img");
+        im.src = s; im.alt = "Dibujo " + (n + 1) + " para colorear";
+        wrap.appendChild(im);
+      });
+      sheet.appendChild(wrap);
+    } else {
+      srcs.forEach(function (s, n) {
+        var fig = document.createElement("figure");
+        var im = document.createElement("img");
+        im.src = s; im.alt = "Dibujo " + (n + 1) + " para colorear";
+        fig.appendChild(im); sheet.appendChild(fig);
+      });
+    }
     document.body.appendChild(sheet);
     document.body.classList.add("printing-sheet");
     printWhenReady(sheet);
@@ -190,9 +256,26 @@
   }
   document.addEventListener("DOMContentLoaded", function () {
     var C = cfg();
+    PAGE = C;
     var bp = $("seo-print"), bd = $("seo-dl");
     if (bp) bp.onclick = printAll;
     if (bd) bd.onclick = function () { downloadAll(C); };
     boot(C);
+  });
+  // "🔄 Otra versión" por figura: regenera solo ese dibujo (la API da uno nuevo).
+  var PAGE = null;
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest(".seo-again") : null;
+    if (!b || b.disabled || !PAGE) return;
+    var fig = b.closest ? b.closest("figure") : null;
+    if (!fig) return;
+    var i = +(b.getAttribute("data-i") || 0);
+    var p = PAGE.prompts[i] || PAGE.prompts[0];
+    var caption = "Dibujo " + (i + 1) + " de " + PAGE.topic + " para colorear";
+    b.disabled = true;
+    var oldT = b.textContent; b.textContent = "...";
+    fig.classList.remove("seo-fail");
+    fillFigure(fig, p, caption).catch(function () { failFigure(fig, p, caption); })
+      .then(function () { b.disabled = false; b.textContent = oldT; });
   });
 })();
