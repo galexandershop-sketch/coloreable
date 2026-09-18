@@ -1,0 +1,12 @@
+# Cloudflare Pages headers (equivalente a vercel.json).
+# Vercel sigue usando vercel.json; Cloudflare usa este archivo. Conviven sin conflicto.
+//
+  Cache-Control: no-store, must-revalidate
+/index.html
+  Cache-Control: no-store, must-revalidate
+/*.js
+  Cache-Control: no-cache, must-revalidate
+/*.css
+  Cache-Control: no-cache, must-revalidate
+/sitemap.xml
+  Content-Type: application/xml

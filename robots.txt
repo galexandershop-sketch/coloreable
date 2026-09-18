@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://coloreable.vercel.app/sitemap.xml

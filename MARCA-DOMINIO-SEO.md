@@ -6,7 +6,7 @@ Fecha: 2026-09-18.
 **Colorable** — "coloreable" en ingles/espanol, corto, pronunciable, disponible probablemente en .com/.app.
 Alternativas: ColoreaIA, DibujosIA, ColoringAI, MiLibroParaColorear.
 Tagline: "Dibujos para colorear con IA — gratis e imprimible".
-Web actual vive en https://web-vercel-seven-nu.vercel.app (temporal, cambiar a dominio propio).
+Web actual vive en https://coloreable.vercel.app (temporal, cambiar a dominio propio).
 
 ## Dominios posibles (verificar disponibilidad)
 1. colorable.app (ideal, corto, moderno, ~$15/ano)

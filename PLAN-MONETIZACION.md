@@ -1,6 +1,6 @@
 # Plan de monetizacion — Colorable (dibujos para colorear con IA)
 
-Fecha: 2026-09-18. Estado: Opcion 1 IMPLEMENTADA y desplegada en https://web-vercel-seven-nu.vercel.app. Opcion 3 PENDIENTE para manana.
+Fecha: 2026-09-18. Estado: Opcion 1 IMPLEMENTADA y desplegada en https://coloreable.vercel.app. Opcion 3 PENDIENTE para manana.
 
 ## Contexto
 - API: `https://death-image.ashlynn.workers.dev/generate` (FLUX-schnell probable, 2-3s, gratis, sin key/captcha).
