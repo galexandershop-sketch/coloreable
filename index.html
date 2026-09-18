@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colorable — Dibujos para colorear con IA | Gratis e imprimible</title>
+<meta name="description" content="Crea dibujos para colorear unicos con IA. Escribe lo que quieras, genera, imprime y colorea. Gratis, sin registro.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero">
+  <div class="hero-badge">Gratis · Sin registro · Imprimible</div>
+  <h1>Dibujos para colorear con IA</h1>
+  <p class="sub">Escribe cualquier idea y crea una pagina para colorear unica en segundos. Para ninos, profes y papas.</p>
+</header>
+<main class="card">
+  <label class="lbl" for="prompt">Que quieres colorear hoy?</label>
+  <textarea id="prompt" placeholder="Ej: un dinosaurio astronauta con mochila"></textarea>
+  <div class="chips" id="chips"></div>
+  <div class="row wrap">
+    <button id="gen" class="btn-primary">Crear dibujo</button>
+    <button id="surprise" class="btn-ghost">Sorprendeme</button>
+  </div>
+  <details class="adv">
+    <summary>Opciones avanzadas</summary>
+    <div class="row wrap">
+      <label class="fld">Formato
+        <select id="ratio">
+          <option value="1:1" selected>Cuadrado (ideal imprimir)</option>
+          <option value="3:4">Retrato (carta)</option>
+          <option value="1:2">Retrato alto</option>
+          <option value="3:2">Horizontal</option>
+          <option value="16:9">Panoramica</option>
+          <option value="9:16">Movil</option>
+        </select>
+      </label>
+      <label class="fld">Cantidad
+        <select id="count">
+          <option value="1" selected>1 dibujo</option>
+          <option value="2">2 dibujos</option>
+          <option value="4">4 dibujos</option>
+          <option value="6">6 dibujos</option>
+        </select>
+      </label>
+      <label class="fld">Detalle <span id="stepsVal">8</span>
+        <input type="range" id="steps" min="1" max="15" value="8">
+      </label>
+      <label class="fld">Trazo
+        <select id="style">
+          <option value="bold" selected>Grueso (ninos)</option>
+          <option value="fine">Fino (detalle)</option>
+        </select>
+      </label>
+    </div>
+  </details>
+  <div id="status" role="status"></div>
+</main>
+<section id="result" class="gallery"></section>
+<section class="how">
+  <h2>Como funciona?</h2>
+  <ol>
+    <li><strong>Escribe</strong> lo que quieras colorear.</li>
+    <li><strong>Creamos</strong> el dibujo y lo convertimos a lineas para lapices y crayones.</li>
+    <li><strong>Imprime</strong> en carta o A4 y a colorear.</li>
+  </ol>
+</section>
+<section class="seo">
+  <h2>Dibujos para colorear de todo</h2>
+  <p>Dinosaurios, unicornios, astronautas, animales, princesas, superheroes, navidad, halloween, vehiculos y mucho mas. Cada dibujo es unico, en blanco y negro, perfecto para imprimir en casa o en clase.</p>
+  <nav class="cats" id="cats"></nav>
+</section>
+<footer>
+  <p>Dibujos con IA · Gratis para uso personal y educativo · <span id="count-made"></span></p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>
