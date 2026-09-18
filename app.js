@@ -503,7 +503,13 @@ function launchPrint(items, ver, size) {
   var done = false;
   var go = function () {
     if (done) return; done = true;
-    try { w.focus(); w.print(); } catch (e) {}
+    try {
+      // Al cerrar el dialogo de impresion se cierra el popup y se devuelve
+      // el foco: asi no queda una ventana huerfana estorbando (bloquea
+      // descargas y clics en la pagina principal mientras siga abierta).
+      w.onafterprint = function () { try { w.close(); } catch (e) {} try { window.focus(); } catch (e2) {} };
+      w.focus(); w.print();
+    } catch (e) { try { w.close(); } catch (e2) {} }
   };
   try { w.onload = function () { setTimeout(go, 350); }; } catch (e) {}
   setTimeout(go, 2500); // respaldo si onload ya pasó
