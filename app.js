@@ -47,7 +47,7 @@ async function gen() {
       row.append(bPrint, bDown, bPaint);
       card.appendChild(row);
       $("result").appendChild(card);
-      await lineArt(u, cv, bold, raw);
+      // Handlers ANTES del line-art: si el usuario clica rapido, el boton ya responde.
       bPrint.onclick = () => printOne(cv);
       bDown.onclick = () => { const a = document.createElement("a"); a.href = cv.toDataURL("image/png"); a.download = "colorear-" + Date.now() + ".png"; a.click(); };
       bPaint.onclick = () => {
@@ -57,11 +57,12 @@ async function gen() {
         var ok = attachPainter(cv);
         bPaint.textContent = ok ? "Listo para pintar" : "No disponible (recarga el dibujo)";
       };
+      await lineArt(u, cv, bold, raw);
     }
     made += imgs.length;
     localStorage.setItem("made", made);
     paintCount();
-  } catch (e) { status("Error: " + e.message, true); $("result").innerHTML = ""; }
+  } catch (e) { status("Error: " + e.message, true); }
   finally { btn.disabled = false; }
 }
 $("gen").onclick = gen;
@@ -82,16 +83,26 @@ function lineArt(url, cv, bold, label) {
       } catch (e) { reject(new Error("Fallo line-art: " + e.message)); }
     };
     img.onerror = () => {
-      // Ultimo recurso: mostrar original en <img> (sin canvas, sin descargar)
+      // Ultimo recurso: dibujar el original DIRECTO en el canvas (sin leer pixeles).
+      // Asi el pintor sigue funcionando (pinta en su propia capa).
       try {
-        const holder = document.createElement("img");
-        holder.src = url;
-        holder.referrerPolicy = "no-referrer";
-        holder.style.width = "100%";
-        holder.style.borderRadius = "10px";
-        cv.replaceWith(holder);
-        resolve();
-      } catch (e) { reject(new Error("No se pudo cargar la imagen. Reintenta.")); }
+        const im2 = new Image();
+        im2.onload = () => {
+          try {
+            const S = 768; cv.width = S; cv.height = S;
+            const c2 = cv.getContext("2d");
+            c2.fillStyle = "#fff"; c2.fillRect(0, 0, S, S);
+            const ar = im2.width / im2.height || 1;
+            let dw = S, dh = S;
+            if (ar > 1) { dh = S / ar; } else { dw = S * ar; }
+            c2.drawImage(im2, (S - dw) / 2, (S - dh) / 2, dw, dh);
+          } catch (e2) {}
+          resolve();
+        };
+        im2.onerror = () => resolve();
+        im2.referrerPolicy = "no-referrer";
+        im2.src = url;
+      } catch (e) { resolve(); }
     };
     img.src = proxied;
   });

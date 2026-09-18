@@ -161,12 +161,22 @@ window.attachPainter = attachPainter;
       out.width = p.paint.width; out.height = p.paint.height;
       var o = out.getContext("2d");
       o.fillStyle = "#fff"; o.fillRect(0, 0, out.width, out.height);
-      if (base) o.drawImage(base, 0, 0);
-      o.drawImage(p.paint, 0, 0);
-      var a = document.createElement("a");
-      a.href = out.toDataURL("image/png");
-      a.download = "coloreado-" + Date.now() + ".png";
-      document.body.appendChild(a); a.click(); a.remove();
+      try {
+        if (base) o.drawImage(base, 0, 0);
+        o.drawImage(p.paint, 0, 0);
+        var a = document.createElement("a");
+        a.href = out.toDataURL("image/png");
+        a.download = "coloreado-" + Date.now() + ".png";
+        document.body.appendChild(a); a.click(); a.remove();
+      } catch (err) {
+        // canvas base contaminado (CORS): guardar solo la capa pintada
+        try {
+          var a2 = document.createElement("a");
+          a2.href = p.paint.toDataURL("image/png");
+          a2.download = "coloreado-" + Date.now() + ".png";
+          document.body.appendChild(a2); a2.click(); a2.remove();
+        } catch (e2) { alert("No se pudo guardar. Intenta captura de pantalla."); }
+      }
     }
   });
 })();
