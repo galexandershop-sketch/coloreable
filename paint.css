@@ -1,11 +1,15 @@
-.painter { position: relative; }
-.paint-layer { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-.paint-bar { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-.swatches { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.sw { width: 30px; height: 30px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
-.sw[aria-pressed="true"] { border-color: #2b2118; transform: scale(1.15); }
+.painter { position: relative; background: #fff; border-radius: 10px; }
+.painter canvas.base-cv { position: relative; z-index: 1; display: block; }
+.paint-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; touch-action: none; cursor: crosshair; border-radius: 10px; }
+.paint-help { font-size: .82rem; color: #8a7a6a; text-align: center; margin: 6px 0 0; }
+.paint-bar { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; background: #fff8f0; border: 2px dashed #f0e4d4; border-radius: 12px; padding: 10px; }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.sw { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #e5d5c0; cursor: pointer; padding: 0; }
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 3px #2b2118; transform: scale(1.15); }
+.cur { font-size: .82rem; text-align: center; color: #8a7a6a; }
 .pw { font-size: .85rem; display: flex; gap: 8px; align-items: center; justify-content: center; }
+.pw output { font-weight: 700; min-width: 2ch; text-align: center; }
 .ptools { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.ptools button { border: 2px solid var(--line); background: #fff; border-radius: 10px; padding: 6px 12px; cursor: pointer; font-size: .82rem; }
+.ptools button { border: 2px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-size: .85rem; }
 .ptools button.on { background: #2b2118; color: #fff; border-color: #2b2118; }
 .ptools .save { background: var(--brand2); color: #fff; border-color: var(--brand2); font-weight: 700; }
