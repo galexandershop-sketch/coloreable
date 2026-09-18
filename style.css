@@ -52,3 +52,17 @@ footer { text-align: center; color: var(--mut); font-size: .8rem; padding: 20px;
 .catcard .btn-mini { align-self: flex-start; padding: 6px 12px; }
 input[type=number], input[type=search] { padding: 8px 10px; border-radius: 10px; border: 2px solid var(--line); font-size: 1rem; font-family: inherit; }
 @media print { header, main, .how, .seo, footer, .page .actions, .page h3 { display: none !important; } .gallery { display: block; } .page { border: none; } }
+/* Hoja de impresion dentro de la pagina (sin popups): oculta en pantalla,
+   visible solo al imprimir cuando body trae .printing-sheet. */
+#printSheet { display: none; }
+@page { margin: 12mm; }
+@media print {
+  body.printing-sheet > *:not(#printSheet) { display: none !important; }
+  body.printing-sheet #printSheet { display: block; background: #fff; }
+  #printSheet figure { margin: 0; }
+  #printSheet.ps-full figure:not(:last-child) { page-break-after: always; break-after: page; }
+  #printSheet.ps-full img { display: block; width: auto; max-width: 100%; max-height: 94vh; margin: 0 auto; }
+  #printSheet.ps-half img { display: block; width: auto; max-width: 100%; max-height: 44vh; margin: 0 auto 8mm; page-break-inside: avoid; }
+  #printSheet.ps-quad .pwrap { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: center; }
+  #printSheet.ps-quad img { display: block; width: 100%; height: auto; max-height: 40vh; object-fit: contain; page-break-inside: avoid; }
+}

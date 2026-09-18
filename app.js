@@ -472,40 +472,42 @@ function openPrintDialog(items) {
 function launchPrint(items, ver, size) {
   var srcs = items.map(function (it) { return (ver === "mine" && it.edited) ? it.edited : (it.original || it.edited); }).filter(Boolean);
   if (!srcs.length) { status("No se pudieron leer los dibujos.", true); return; }
-  // Sin scripts inline en la hoja (el CSP de la pagina se hereda al popup y los bloquearia):
-  // la impresion se dispara desde esta ventana (opener).
-  var css = "@page{margin:12mm}body{margin:0;background:#fff;font-family:sans-serif}" +
-    "figure{margin:0}" +
-    ".full figure:not(:last-child){page-break-after:always;break-after:page}" +
-    ".full img{display:block;width:auto;max-width:100%;max-height:94vh;margin:0 auto}" +
-    ".half img{display:block;width:auto;max-width:100%;max-height:44vh;margin:0 auto 8mm;page-break-inside:avoid}" +
-    ".quad .wrap{display:grid;grid-template-columns:1fr 1fr;gap:6mm;align-items:center}" +
-    ".quad img{display:block;width:100%;height:auto;max-height:40vh;object-fit:contain;page-break-inside:avoid}";
-  var inner;
+  // Hoja de impresion DENTRO de esta misma pagina (sin popups ni about:blank):
+  // se arma un #printSheet oculto en pantalla, visible solo en @media print,
+  // se llama a window.print() y al cerrar el dialogo se limpia todo.
+  var old = document.getElementById("printSheet");
+  if (old) old.remove();
+  document.body.classList.remove("printing-sheet");
+  var sheet = document.createElement("div");
+  sheet.id = "printSheet";
+  sheet.className = size === "quad" ? "ps-quad" : (size === "half" ? "ps-half" : "ps-full");
   if (size === "quad") {
-    inner = '<div class="wrap">' + srcs.map(function (s) { return '<img src="' + s + '">'; }).join("") + "</div>";
+    var wrap = document.createElement("div");
+    wrap.className = "pwrap";
+    srcs.forEach(function (s) { var im = document.createElement("img"); im.src = s; im.alt = "dibujo"; wrap.appendChild(im); });
+    sheet.appendChild(wrap);
   } else {
-    inner = srcs.map(function (s) { return '<figure><img src="' + s + '"></figure>'; }).join("");
+    srcs.forEach(function (s) {
+      var fig = document.createElement("figure");
+      var im = document.createElement("img");
+      im.src = s; im.alt = "dibujo";
+      fig.appendChild(im); sheet.appendChild(fig);
+    });
   }
-  var html = "<html><head><title>Colorable</title><style>" + css + "</style></head>" +
-    '<body class="' + size + '">' + inner + "</body></html>";
-  var w = window.open("", "_blank");
-  if (!w) { status("El navegador bloqueó la ventana de impresión.", true); return; }
-  w.document.write(html);
-  w.document.close();
-  var done = false;
-  var go = function () {
-    if (done) return; done = true;
-    try {
-      // Al cerrar el dialogo de impresion se cierra el popup y se devuelve
-      // el foco: asi no queda una ventana huerfana estorbando (bloquea
-      // descargas y clics en la pagina principal mientras siga abierta).
-      w.onafterprint = function () { try { w.close(); } catch (e) {} try { window.focus(); } catch (e2) {} };
-      w.focus(); w.print();
-    } catch (e) { try { w.close(); } catch (e2) {} }
+  document.body.appendChild(sheet);
+  document.body.classList.add("printing-sheet");
+  var cleaned = false;
+  var cleanup = function () {
+    if (cleaned) return; cleaned = true;
+    document.body.classList.remove("printing-sheet");
+    var sh = document.getElementById("printSheet");
+    if (sh) sh.remove();
+    try { window.onafterprint = null; } catch (e) {}
   };
-  try { w.onload = function () { setTimeout(go, 350); }; } catch (e) {}
-  setTimeout(go, 2500); // respaldo si onload ya pasó
+  try { window.onafterprint = function () { cleanup(); }; } catch (e) {}
+  try { window.focus(); window.print(); }
+  catch (e) { cleanup(); status("No se pudo abrir la impresión.", true); return; }
+  setTimeout(cleanup, 120000); // respaldo si afterprint no dispara
 }
 function printAll() {
   const bases = galleryBases();
