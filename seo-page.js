@@ -9,6 +9,38 @@
     if (s) { s.textContent = m || ""; s.className = err ? "err" : ""; }
   }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  // Textos UI por idioma (vienen en seo-data; estos son el fallback en español).
+  var STR = {
+    creating: "Creando tus dibujos... (unos segundos)",
+    partial: "Listo: {ok} dibujos. ({fail} fallaron, dale Reintentar)",
+    wait: "Aún no hay dibujos listos, espera unos segundos.",
+    unreadable: "No se pudieron leer los dibujos.",
+    print_wait: "Preparando hoja de impresión...",
+    print_fail: "No se pudo abrir la impresión.",
+    zip_build: "Armando ZIP con {n} dibujos...",
+    zip_done: "ZIP listo en tu carpeta de descargas.",
+    dl_one: "Descargando uno por uno...",
+    dl_done: "Descarga lista: {n} dibujos.",
+    creating_one: "Creando dibujo...",
+    drawing_n: "Dibujo {n} de {t} para colorear",
+    retry: "Reintentar",
+    fail_hint: "Falló: dale a 🔄 Otra versión.",
+    img_alt: "Dibujo {n} para colorear",
+    print_1: "Imprimir dibujo",
+    print_n: "Imprimir {n} dibujos",
+    size_title: "Tamaño",
+    size_full: "Página completa (1 por hoja)",
+    size_half: "Media página (2 por hoja)",
+    size_quad: "Pequeños (4 por hoja)",
+    tip: "Tip: en la ventana de impresión desactiva “Encabezados y pies de página” para que no salgan fecha ni dirección web.",
+    cancel: "Cancelar",
+    print: "Imprimir",
+  };
+  function T(k, vars) {
+    var s = STR[k] || "";
+    if (vars) for (var key in vars) s = s.split("{" + key + "}").join(vars[key]);
+    return s;
+  }
   function cfg() {
     try { return JSON.parse($("seo-data").textContent); }
     catch (e) { return { topic: "", slug: "dibujo", prompts: [] }; }
@@ -48,7 +80,7 @@
   async function fillFigure(fig, prompt, caption) {
     var cv = fig.querySelector("canvas");
     var cap = fig.querySelector("figcaption");
-    if (cap) cap.textContent = "Creando dibujo...";
+    if (cap) cap.textContent = T("creating_one");
     var imgs = await genWithRetry(prompt);
     await lineArt(imgs[0], cv, true);
     if (cap) cap.textContent = caption;
@@ -56,12 +88,12 @@
   function failFigure(fig, prompt, caption) {
     if (fig.querySelector(".seo-again")) {
       var cap = fig.querySelector("figcaption");
-      if (cap) cap.textContent = "Falló: dale a 🔄 Otra versión.";
+      if (cap) cap.textContent = T("fail_hint");
       return;
     }
     fig.classList.add("seo-fail");
     var b = document.createElement("button");
-    b.className = "btn-mini alt"; b.type = "button"; b.textContent = "Reintentar";
+    b.className = "btn-mini alt"; b.type = "button"; b.textContent = T("retry");
     b.onclick = function () {
       b.remove(); fig.classList.remove("seo-fail");
       fillFigure(fig, prompt, caption).catch(function () { failFigure(fig, prompt, caption); });
@@ -71,23 +103,24 @@
   async function boot(C) {
     var figs = Array.prototype.slice.call(document.querySelectorAll("#seo-grid figure"));
     if (!figs.length) return;
-    status("Creando tus dibujos... (unos segundos)");
+    status(T("creating"));
     var i = 0, ok = 0, fail = 0;
     async function worker() {
       while (i < figs.length) {
         var idx = i++;
         var fig = figs[idx];
         var p = C.prompts[idx] || C.prompts[0];
+        var capT = T("drawing_n", { n: idx + 1, t: C.topic });
         try {
-          await fillFigure(fig, p, "Dibujo " + (idx + 1) + " de " + C.topic + " para colorear");
+          await fillFigure(fig, p, capT);
           ok++;
-        } catch (e) { fail++; failFigure(fig, p, "Dibujo " + (idx + 1) + " de " + C.topic + " para colorear"); }
+        } catch (e) { fail++; failFigure(fig, p, capT); }
       }
     }
     var ws = [];
     for (var k = 0; k < Math.min(3, figs.length); k++) ws.push(worker());
     await Promise.all(ws);
-    if (fail) status("Listo: " + ok + " dibujos." + (fail ? " (" + fail + " fallaron, dale Reintentar)" : ""), fail > 0);
+    if (fail) status(T("partial", { ok: ok, fail: fail }), fail > 0);
     else status("");
   }
   function canvases() {
@@ -111,11 +144,11 @@
       clearTimeout(waitTo);
       status("");
       try { window.focus(); window.print(); }
-      catch (e) { cleanup(); status("No se pudo abrir la impresión.", true); return; }
+      catch (e) { cleanup(); status(T("print_fail"), true); return; }
       setTimeout(cleanup, 120000);
     };
     if (!pending) { doPrint(); return; }
-    status("Preparando hoja de impresión...");
+    status(T("print_wait"));
     var waitTo = setTimeout(doPrint, 4000);
     var watch = function (im) {
       var done = false;
@@ -133,12 +166,12 @@
   }
   function printAll() {
     var cvs = canvases();
-    if (!cvs.length) { status("Aún no hay dibujos listos, espera unos segundos.", true); return; }
+    if (!cvs.length) { status(T("wait"), true); return; }
     var srcs = [];
     for (var i = 0; i < cvs.length; i++) {
       try { srcs.push(cvs[i].toDataURL("image/png")); } catch (e) {}
     }
-    if (!srcs.length) { status("No se pudieron leer los dibujos.", true); return; }
+    if (!srcs.length) { status(T("unreadable"), true); return; }
     openPrintSizeDialog(srcs);
   }
   // Dialogo de tamano (1, 2 o 4 por hoja), igual que en la app principal.
@@ -148,16 +181,16 @@
     var box = document.createElement("div");
     box.style.cssText = "background:#fffdf8;border-radius:14px;max-width:430px;width:100%;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);color:#2b2118";
     var h = document.createElement("h3");
-    h.textContent = srcs.length > 1 ? "Imprimir " + srcs.length + " dibujos" : "Imprimir dibujo";
+    h.textContent = srcs.length > 1 ? T("print_n", { n: srcs.length }) : T("print_1");
     h.style.margin = "0 0 10px";
     box.appendChild(h);
     var fs = document.createElement("div");
     fs.style.margin = "0 0 10px";
     var t = document.createElement("div");
-    t.textContent = "Tamaño";
+    t.textContent = T("size_title");
     t.style.fontWeight = "700"; t.style.marginBottom = "4px";
     fs.appendChild(t);
-    [["full", "Página completa (1 por hoja)"], ["half", "Media página (2 por hoja)"], ["quad", "Pequeños (4 por hoja)"]].forEach(function (o) {
+    [[ "full", T("size_full") ], [ "half", T("size_half") ], [ "quad", T("size_quad") ]].forEach(function (o) {
       var lab = document.createElement("label");
       lab.style.display = "block"; lab.style.margin = "4px 0"; lab.style.cursor = "pointer";
       var r = document.createElement("input");
@@ -170,12 +203,12 @@
     box.appendChild(fs);
     var tip = document.createElement("p");
     tip.style.cssText = "font-size:.82rem;color:#8a7a6a;margin:6px 0 12px";
-    tip.textContent = "Tip: en la ventana de impresión desactiva “Encabezados y pies de página” para que no salgan fecha ni dirección web.";
+    tip.textContent = T("tip");
     box.appendChild(tip);
     var row = document.createElement("div");
     row.style.cssText = "display:flex;gap:10px;justify-content:flex-end";
-    var bC = document.createElement("button"); bC.className = "btn-ghost"; bC.textContent = "Cancelar";
-    var bP = document.createElement("button"); bP.className = "btn-primary"; bP.textContent = "Imprimir";
+    var bC = document.createElement("button"); bC.className = "btn-ghost"; bC.textContent = T("cancel");
+    var bP = document.createElement("button"); bP.className = "btn-primary"; bP.textContent = T("print");
     row.append(bC, bP); box.appendChild(row);
     ov.appendChild(box); document.body.appendChild(ov);
     bC.onclick = function () { ov.remove(); };
@@ -199,16 +232,16 @@
       wrap.className = "pwrap";
       srcs.forEach(function (s, n) {
         var im = document.createElement("img");
-        im.src = s; im.alt = "Dibujo " + (n + 1) + " para colorear";
+        im.src = s; im.alt = T("img_alt", { n: n + 1 });
         wrap.appendChild(im);
       });
       sheet.appendChild(wrap);
     } else {
       srcs.forEach(function (s, n) {
         var fig = document.createElement("figure");
-        var im = document.createElement("img");
-        im.src = s; im.alt = "Dibujo " + (n + 1) + " para colorear";
-        fig.appendChild(im); sheet.appendChild(fig);
+      var im = document.createElement("img");
+      im.src = s; im.alt = T("img_alt", { n: n + 1 });
+      fig.appendChild(im); sheet.appendChild(fig);
       });
     }
     document.body.appendChild(sheet);
@@ -217,10 +250,10 @@
   }
   async function downloadAll(C) {
     var cvs = canvases();
-    if (!cvs.length) { status("Aún no hay dibujos listos, espera unos segundos.", true); return; }
+    if (!cvs.length) { status(T("wait"), true); return; }
     if (window.JSZip) {
       try {
-        status("Armando ZIP con " + cvs.length + " dibujos...");
+        status(T("zip_build", { n: cvs.length }));
         var zip = new window.JSZip(), n = 0;
         for (var i = 0; i < cvs.length; i++) {
           var url = "";
@@ -237,11 +270,11 @@
         a.download = C.slug + ".zip";
         document.body.appendChild(a); a.click();
         setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} a.remove(); }, 5000);
-        status("ZIP listo en tu carpeta de descargas.");
+        status(T("zip_done"));
         return;
       } catch (e) { /* cae al plan B */ }
     }
-    status("Descargando uno por uno...");
+    status(T("dl_one"));
     var j = 0;
     for (var k = 0; k < cvs.length; k++) {
       try {
@@ -252,10 +285,11 @@
       } catch (e) {}
       await sleep(400);
     }
-    status("Descarga lista: " + j + " dibujos.");
+    status(T("dl_done", { n: j }));
   }
   document.addEventListener("DOMContentLoaded", function () {
     var C = cfg();
+    if (C.ui) for (var k in C.ui) STR[k] = C.ui[k];
     PAGE = C;
     var bp = $("seo-print"), bd = $("seo-dl");
     if (bp) bp.onclick = printAll;
@@ -271,7 +305,7 @@
     if (!fig) return;
     var i = +(b.getAttribute("data-i") || 0);
     var p = PAGE.prompts[i] || PAGE.prompts[0];
-    var caption = "Dibujo " + (i + 1) + " de " + PAGE.topic + " para colorear";
+    var caption = T("drawing_n", { n: i + 1, t: PAGE.topic });
     b.disabled = true;
     var oldT = b.textContent; b.textContent = "...";
     fig.classList.remove("seo-fail");
