@@ -13,7 +13,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 function slugify(s) {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/ñ/g, "n").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    .replace(/ñ/g, "n").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function esc(s) {
